@@ -17,7 +17,7 @@ main :-
     read_stream_to_codes(Str,Codes), % [23,12,13]
     close(Str),
 
-    codes_to_bin(Codes, Binary), % [[0,1,..],[1,0,..]]
+    codes_to_bin(Codes, Binary), % % [[0,1,..,N],[1,0,..,N],..] N=8
 
     flatten(Binary, FlattenBinary), % [0,1,..,1,0,..]
     
@@ -25,10 +25,11 @@ main :-
     length(FlattenBinary, L),
     append_zeros_2(FlattenBinary, L, BinaryFilled),
 
-    part(BinaryFilled, 6, BinaryGroups),
+    part(BinaryFilled, 6, BinaryGroups), % [[0,1,..,N],[1,0,..,N],..] N=6
 
+    bin_to_index(BinaryGroups, IndexList),    
     
-    writeln(BinaryGroups).
+    writeln(IndexList).
 
 
 % Convert ASCII list to Binary list
@@ -53,7 +54,6 @@ binary_number([Bit|Bits], Acc, N) :-
 
 % Add zeros to binary number START, if there are less than 8 digits
 append_zeros(B, 8, NewH) :- NewH = B.
-%append_zeros(B, 7, NewH) :- atom_concat(0, B, NewH).
 append_zeros(B, L, NewH) :-
     append([0], B, Concat),
     NewL is L+1,
@@ -73,3 +73,10 @@ part(L, N, [DL|DLTail]) :-
    length(DL, N),
    append(DL, LTail, L),
    part(LTail, N, DLTail).
+
+% Converts list of binary lists into list of indexes
+bin_to_index([], _) :- !.
+bin_to_index([H|[]], [NewH|[]]) :- binary_number(H, NewH).
+bin_to_index([H|T], [NewH|NewT]) :- 
+    binary_number(H, NewH),
+    bin_to_index(T, NewT).
