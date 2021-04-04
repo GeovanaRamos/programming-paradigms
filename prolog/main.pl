@@ -18,31 +18,40 @@ main :-
     read_stream_to_codes(Str,Codes), % [23,12,13]
     close(Str),
 
-    codes_to_bin(Codes, Binary), % % [[0,1,..,N],[1,0,..,N],..] N=8
+    codes_to_bin(Codes, Binary, 0), % % [[0,1,..,N],[1,0,..,N],..] N<=8
+    pad_binary_list(Binary, BinaryList, 8), % [[0,1,..,N],[1,0,..,N],..] N=8
 
-    flatten(Binary, FlattenBinary), % [0,1,..,1,0,..]
+    flatten(BinaryList, FlattenBinary), % [0,1,..,1,0,..]
     
     % check if is divisible by 6 to part, otherwise fill with zeros
     length(FlattenBinary, L),
-    append_zeros_2(FlattenBinary, L, BinaryFilled),
+    append_zeros_end(FlattenBinary, L, BinaryFilled),
 
     part(BinaryFilled, 6, BinaryGroups), % [[0,1,..,N],[1,0,..,N],..] N=6
 
-    bin_to_index(BinaryGroups, IndexList),    
-    index_to_base64(IndexList, Base64),
+    bin_to_index(BinaryGroups, IndexList, 0),    
+    index_to_base64(IndexList, Base64, 0),
     atomic_list_concat(Base64, Base64Concat),
     
     writeln(Base64Concat).
 
 
 % Convert ASCII list to Binary list
-codes_to_bin([], _) :- !.
-codes_to_bin([H|[]], [NewH|[]]) :- binary_number(Bin, H), length(Bin, L), append_zeros(Bin, L, NewH).
-codes_to_bin([H|T], [NewH|NewT]) :- 
-    binary_number(Bin, H),
-    length(Bin, L),
-    append_zeros(Bin, L, NewH),
-    codes_to_bin(T, NewT).
+codes_to_bin([], _, 0) :- !.
+codes_to_bin(_, [], 1) :- !.
+codes_to_bin([H|[]], [NewH|[]], _) :- binary_number(NewH, H).
+codes_to_bin([H|T], [NewH|NewT], Order) :- 
+    binary_number(NewH, H),
+    codes_to_bin(T, NewT, Order).
+
+
+% Iterate list of binary lists to pad zeros
+pad_binary_list([], _, _) :- !.
+pad_binary_list([H|[]], [NewH|[]], MaxLen) :- length(H, L), append_zeros_start(H, L, MaxLen, NewH).
+pad_binary_list([H|T], [NewH|NewT], MaxLen) :- 
+    length(H, L),
+    append_zeros_start(H, L, MaxLen,  NewH),
+    pad_binary_list(T, NewT, MaxLen).
 
 
 % Convert decimal number to binary number and vice-versa
@@ -55,20 +64,20 @@ binary_number([Bit|Bits], Acc, N) :-
     binary_number(Bits, Acc1, N).
 
 
-% Add zeros to binary number START, if there are less than 8 digits
-append_zeros(B, 8, NewH) :- NewH = B.
-append_zeros(B, L, NewH) :-
+% Add zeros to binary number START, if there are less than MaxLen digits
+append_zeros_start(B, CurrLen , MaxLen, NewB) :- CurrLen>=MaxLen, NewB = B.
+append_zeros_start(B, CurrLen, MaxLen, NewB) :-
     append([0], B, Concat),
-    NewL is L+1,
-    append_zeros(Concat, NewL, NewH).
+    NewCurrLen is CurrLen+1,
+    append_zeros_start(Concat, NewCurrLen, MaxLen, NewB).
 
 
-% Add zeros to binary list END, if length is not divisible by 6
-append_zeros_2(B, L, NewB) :- L mod 6 =:= 0, B = NewB.
-append_zeros_2(B, L, NewH) :-
+% Add zeros to binary number END, if length is not divisible by 6
+append_zeros_end(B, L, NewB) :- L mod 6 =:= 0, B = NewB.
+append_zeros_end(B, L, NewB) :-
     append(B, [0], Concat),
     NewL is L+1,
-    append_zeros_2(Concat, NewL, NewH).
+    append_zeros_end(Concat, NewL, NewB).
 
 % Part list into lists of N numbers
 part([], _, []).
@@ -78,18 +87,20 @@ part(L, N, [DL|DLTail]) :-
    part(LTail, N, DLTail).
 
 % Converts list of binary lists into list of indexes
-bin_to_index([], _) :- !.
-bin_to_index([H|[]], [NewH|[]]) :- binary_number(H, NewH).
-bin_to_index([H|T], [NewH|NewT]) :- 
+bin_to_index([], _, 0) :- !.
+bin_to_index(_, [], 1) :- !.
+bin_to_index([H|[]], [NewH|[]], _) :- binary_number(H, NewH).
+bin_to_index([H|T], [NewH|NewT], Order) :- 
     binary_number(H, NewH),
-    bin_to_index(T, NewT).
+    bin_to_index(T, NewT, Order).
 
 
-index_to_base64([], _) :- !.
-index_to_base64([H|[]], [NewH|[]]) :- base64_char(H, NewH).
-index_to_base64([H|T], [NewH|NewT]) :- 
+index_to_base64([], _, 0) :- !.
+index_to_base64(_, [], 1) :- !.
+index_to_base64([H|[]], [NewH|[]], _) :- base64_char(H, NewH).
+index_to_base64([H|T], [NewH|NewT], Order) :- 
     base64_char(H, NewH),
-    index_to_base64(T, NewT).
+    index_to_base64(T, NewT, Order).
 
 
 base64_char(00, 'A').
