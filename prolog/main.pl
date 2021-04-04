@@ -58,7 +58,28 @@ encode :-
 
 % Decode message
 decode :-
-    writeln('TODO').
+    open('texto2.txt', read, Str),
+    read_stream_to_codes(Str,Codes), % [84,87,70,117]
+    close(Str),
+    atom_codes(String, Codes), % TWFu
+    string_chars(String, Chars), % [T,W,F,u]
+    index_to_base64(IndexList, Chars, 1), % [19,22,5,46]
+
+    bin_to_index(Binary, IndexList, 1), % [[0,1,..,N],[1,0,..,N],..] N<=6
+    pad_binary_list(Binary, BinaryFilled, 6), % [[0,1,..,N],[1,0,..,N],..] N=6
+
+    flatten(BinaryFilled, FlattenBinary), % [0,1,..,1,0,..]
+
+    % check if is divisible by 8 to part, otherwise fill remove zeros
+    length(FlattenBinary, L),
+    remove_zeros_end(FlattenBinary, L, BinaryRemoved),
+
+    part(BinaryRemoved, 8, BinaryGroups), % [[0,1,..,N],[1,0,..,N],..] N=8
+
+    codes_to_bin(BinaryCodes, BinaryGroups, 1),
+    atom_codes(Text, BinaryCodes),
+
+    writeln(Text).
 
 
 % Convert ASCII list to Binary list
@@ -103,6 +124,18 @@ append_zeros_end(B, L, NewB) :-
     append(B, [0], Concat),
     NewL is L+1,
     append_zeros_end(Concat, NewL, NewB).
+
+% Delete last element of a list
+delete_last_element([_], []).
+delete_last_element([Head, Next|Tail], [Head|NTail]):-
+    delete_last_element([Next|Tail], NTail).
+
+% Remove zeros from binary number END, if length is not divisible by 8
+remove_zeros_end(B, L, NewB) :- L mod 8 =:= 0, B = NewB.
+remove_zeros_end(B, L, NewB) :-
+    delete_last_element(B, Removed),
+    NewL is L-1,
+    remove_zeros_end(Removed, NewL, NewB).
 
 % Part list into lists of N numbers
 part([], _, []).
