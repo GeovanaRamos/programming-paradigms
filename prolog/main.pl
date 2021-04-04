@@ -12,7 +12,28 @@
 :- use_module(library(clpfd)).
 
 
-main :-
+main([Arg1|_]):-
+    write_ln(Arg1),
+    switch(
+        Arg1, 
+        [
+            '--encode' : encode(),
+            '--decode' : decode()
+        ]
+    ).
+
+
+% Choose execution mode according to args
+switch(_, []) :- write_ln('base64: opção não reconhecida'), halt(0).
+switch(Arg, [Command:Action|Options]) :-
+    ( Arg=Command ->
+        call(Action)
+    ;
+        switch(Arg, Options)
+    ).
+
+% Encode message
+encode :-
     % Read file
     open('texto.txt', read, Str),
     read_stream_to_codes(Str,Codes), % [23,12,13]
@@ -34,6 +55,10 @@ main :-
     atomic_list_concat(Base64, Base64Concat),
     
     writeln(Base64Concat).
+
+% Decode message
+decode :-
+    writeln('TODO').
 
 
 % Convert ASCII list to Binary list
