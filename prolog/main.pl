@@ -1,36 +1,96 @@
 #!/usr/bin/env swipl
 
-% ENCODE
-% converte pra ascii - OK
-% de ascii para binario - OK
-% junta os binarios em grupos de 6 - OK
-% converte os grupos de 6 para o index - OK
-% pega o base64 do index - OK
-% sinal = ao final
+% TODO
+% usar o padding =
+% pegar arquivo da linha de comando
+
+% se tem help ou version, executa o primeiro deles, indepedente dos outros argumentos
+% se tem um argumento sem traço, é o arquivo
+% se o arquivo nao existe, erro
+% se tem -w/--wrap muda a forma de operar (APENAS PRA ENCODE)
+% se tem -i/ --ignore-garbage, só muda a forma de operar (APENAS PARA DECODE). 
 
 :- initialization(main, main).
 :- use_module(library(clpfd)).
 
 
-main([Arg1|_]):-
-    write_ln(Arg1),
-    switch(
-        Arg1, 
-        [
-            '--encode' : encode(),
-            '--decode' : decode()
-        ]
-    ).
+main(ArgsList):-
+    parse_arguments(ArgsList, I, W, Mode, Filename),
+    writeln(I),
+    writeln(W),
+    writeln(Mode),
+    writeln(Filename).
 
 
-% Choose execution mode according to args
-switch(_, []) :- write_ln('base64: opção não reconhecida'), halt(0).
-switch(Arg, [Command:Action|Options]) :-
-    ( Arg=Command ->
-        call(Action)
+parse_arguments([], _, _, _, _) :- !.
+parse_arguments(['--help'|_], _, _, _, _) :- help(), halt(0).
+parse_arguments(['--version'|_], _, _, _, _) :- version(), halt(0).
+parse_arguments(['--decode'|ArgList], I, W, Mode, Filename) :- 
+    Mode='--decode',
+    parse_arguments(ArgList, I, W, Mode, Filename).
+parse_arguments([Arg|ArgList], I, W, Mode, Filename) :- 
+    Arg='--wrap';Arg='-w', 
+    ( [Val|T] = ArgList ->
+        W=Val,
+        parse_arguments(T, I, W, Mode, Filename)
     ;
-        switch(Arg, Options)
+        writeln('base64: a opção requer um argumento -- “w”\nTente "base64 --help" para mais informações.'),
+        halt(0)
     ).
+parse_arguments([Arg|ArgList], I, W, Mode, Filename) :- 
+    Arg='--ignore-garbage';Arg='-i', 
+    I is 0, 
+    parse_arguments(ArgList, I, W, Mode, Filename).
+parse_arguments([Arg|ArgList], I, W, Mode, Filename) :- 
+    Filename=Arg,
+    parse_arguments(ArgList, I, W, Mode, Filename).
+parse_arguments([Arg|_], _, _, _, _) :- 
+    write('base64: opção inválida -- “'),
+    write(Arg),
+    writeln('”\nTente "base64 --help" para mais informações.'),
+    halt(0).
+
+
+
+% Help message command
+help :-
+    writeln(
+'Uso: base64 [OPÇÃO]... [ARQUIVO]
+Codifica/decodifica na Base64 o ARQUIVO, ou entrada padrão, para saída padrão.
+
+Se ARQUIVO não for especificado ou for -, lê a entrada padrão.
+        
+Argumentos obrigatórios para opções longas também o são para opções curtas.
+  -d, --decode          decodifica os dados
+  -i, --ignore-garbage  ao decodificar, ignora caracteres não alfabéticos
+  -w, --wrap=COLS       quebra linhas codificadas após COLS caracteres
+                            (padrão: 76). Use 0 para desabilitar
+
+      --help     mostra esta ajuda e sai
+      --version  informa a versão e sai
+        
+Os dados são codificados como descrito para o alfabeto base64 na RFC 4648.
+Na decodificação, a entrada pode conter caracteres de nova linha além dos
+bytes do alfabeto base64 formal. Use --ignore-garbage para tentar se recuperar
+de quaisquer outros bytes fora do alfabeto no fluxo codificado.
+
+Página de ajuda do GNU coreutils: <https://www.gnu.org/software/coreutils/>
+Relate erros de tradução do base64: <https://translationproject.org/team/pt_BR.html>
+Documentação completa em: <https://www.gnu.org/software/coreutils/base64>
+ou disponível localmente via: info "(coreutils) base64 invocation"').
+
+
+% Version message command
+version :-
+    writeln(
+'base64 (GNU coreutils) 8.30
+Copyright (C) 2018 Free Software Foundation, Inc.
+Licença GPLv3+: GNU GPL versão 3 ou posterior <https://gnu.org/licenses/gpl.html>
+Este é um software livre: você é livre para alterá-lo e redistribuí-lo.
+NÃO HÁ QUALQUER GARANTIA, na máxima extensão permitida em lei.
+
+Escrito por Simon Josefsson.').
+
 
 % Encode message
 encode :-
@@ -55,6 +115,7 @@ encode :-
     atomic_list_concat(Base64, Base64Concat),
     
     writeln(Base64Concat).
+
 
 % Decode message
 decode :-
@@ -111,7 +172,7 @@ binary_number([Bit|Bits], Acc, N) :-
 
 
 % Add zeros to binary number START, if there are less than MaxLen digits
-append_zeros_start(B, CurrLen , MaxLen, NewB) :- CurrLen>=MaxLen, NewB = B.
+append_zeros_start(B, CurrLen , MaxLen, B) :- CurrLen>=MaxLen.
 append_zeros_start(B, CurrLen, MaxLen, NewB) :-
     append([0], B, Concat),
     NewCurrLen is CurrLen+1,
@@ -119,7 +180,7 @@ append_zeros_start(B, CurrLen, MaxLen, NewB) :-
 
 
 % Add zeros to binary number END, if length is not divisible by 6
-append_zeros_end(B, L, NewB) :- L mod 6 =:= 0, B = NewB.
+append_zeros_end(B, L, B) :- L mod 6 =:= 0.
 append_zeros_end(B, L, NewB) :-
     append(B, [0], Concat),
     NewL is L+1,
@@ -131,7 +192,7 @@ delete_last_element([Head, Next|Tail], [Head|NTail]):-
     delete_last_element([Next|Tail], NTail).
 
 % Remove zeros from binary number END, if length is not divisible by 8
-remove_zeros_end(B, L, NewB) :- L mod 8 =:= 0, B = NewB.
+remove_zeros_end(B, L, B) :- L mod 8 =:= 0.
 remove_zeros_end(B, L, NewB) :-
     delete_last_element(B, Removed),
     NewL is L-1,
