@@ -16,12 +16,18 @@
 
 main(ArgsList):-
     parse_arguments(ArgsList, I, W, Mode, Filename),
-    writeln(I),
-    writeln(W),
-    writeln(Mode),
-    writeln(Filename).
+    ( exists_file(Filename) ->
+        writeln('ok'),
+        halt(0)
+    ;
+        write('base64: '),
+        write(Filename),
+        writeln(': Arquivo ou diretório inexistente'),
+        halt(0)
+    ).
 
 
+% Get value for each parameter
 parse_arguments([], _, _, _, _) :- !.
 parse_arguments(['--help'|_], _, _, _, _) :- help(), halt(0).
 parse_arguments(['--version'|_], _, _, _, _) :- version(), halt(0).
@@ -49,7 +55,6 @@ parse_arguments([Arg|_], _, _, _, _) :-
     write(Arg),
     writeln('”\nTente "base64 --help" para mais informações.'),
     halt(0).
-
 
 
 % Help message command
