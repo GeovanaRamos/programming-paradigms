@@ -17,7 +17,7 @@
 main(ArgsList):-
     parse_arguments(ArgsList, I, W, Mode, Filename),
     ( exists_file(Filename) ->
-        writeln('ok'),
+        call_encode_or_decode(I, W, Mode, Filename),
         halt(0)
     ;
         write('base64: '),
@@ -97,8 +97,13 @@ NÃO HÁ QUALQUER GARANTIA, na máxima extensão permitida em lei.
 Escrito por Simon Josefsson.').
 
 
+% Decide each mode to call
+call_encode_or_decode(I, _, '--decode', Filename) :- decode(I, Filename), halt(0).
+call_encode_or_decode(_, W, _, Filename) :- encode(W, Filename), halt(0).
+
+
 % Encode message
-encode :-
+encode(I, Filename) :-
     % Read file
     open('texto.txt', read, Str),
     read_stream_to_codes(Str,Codes), % [23,12,13]
@@ -123,7 +128,7 @@ encode :-
 
 
 % Decode message
-decode :-
+decode(W, Filename) :-
     open('texto2.txt', read, Str),
     read_stream_to_codes(Str,Codes), % [84,87,70,117]
     close(Str),
