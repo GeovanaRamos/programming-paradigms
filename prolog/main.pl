@@ -1,13 +1,8 @@
 #!/usr/bin/env swipl
 
 % TODO
-% usar o padding =
-% pegar arquivo da linha de comando
+% usar o padding = (excecao no W)
 
-% se tem help ou version, executa o primeiro deles, indepedente dos outros argumentos
-% se tem um argumento sem traço, é o arquivo
-% se o arquivo nao existe, erro
-% se tem -w/--wrap muda a forma de operar (APENAS PRA ENCODE)
 % se tem -i/ --ignore-garbage, só muda a forma de operar (APENAS PARA DECODE). 
 
 :- initialization(main, main).
@@ -45,7 +40,7 @@ parse_arguments([Arg|ArgList], I, W, Mode, Filename) :-
     ).
 parse_arguments([Arg|ArgList], I, W, Mode, Filename) :- 
     Arg='--ignore-garbage';Arg='-i', 
-    I is 0, 
+    I is 1, 
     parse_arguments(ArgList, I, W, Mode, Filename).
 parse_arguments([Arg|ArgList], I, W, Mode, Filename) :- 
     Filename=Arg,
@@ -98,14 +93,16 @@ Escrito por Simon Josefsson.').
 
 
 % Decide each mode to call
-call_encode_or_decode(I, _, '--decode', Filename) :- decode(I, Filename), halt(0).
-call_encode_or_decode(_, W, _, Filename) :- encode(W, Filename), halt(0).
+call_encode_or_decode(I, _, '--decode', Filename) :- atom(I), decode(I, Filename).
+call_encode_or_decode(_, _, '--decode', Filename) :- decode(0, Filename).
+call_encode_or_decode(_, W, _, Filename) :- atom(W), encode(W, Filename).
+call_encode_or_decode(_, _, _, Filename) :- encode('0', Filename).
 
 
 % Encode message
-encode(I, Filename) :-
+encode(W, Filename) :-
     % Read file
-    open('texto.txt', read, Str),
+    open(Filename, read, Str),
     read_stream_to_codes(Str,Codes), % [23,12,13]
     close(Str),
 
@@ -122,14 +119,29 @@ encode(I, Filename) :-
 
     bin_to_index(BinaryGroups, IndexList, 0),    
     index_to_base64(IndexList, Base64, 0),
-    atomic_list_concat(Base64, Base64Concat),
     
-    writeln(Base64Concat).
+    atom_number(W, NewW),
+
+    ( NewW>0 ->
+        part(Base64, NewW, Concat),
+        print_formatted_decode(Concat)
+    ;
+        atomic_list_concat(Base64, Base64Concat),
+        writeln(Base64Concat)
+    ).
+
+
+% Print accordin to W parameter
+print_formatted_decode([]) :- !.
+print_formatted_decode([H|T]) :- 
+    string_chars(String, H),
+    writeln(String),
+    print_formatted_decode(T).
 
 
 % Decode message
-decode(W, Filename) :-
-    open('texto2.txt', read, Str),
+decode(I, Filename) :-
+    open(Filename, read, Str),
     read_stream_to_codes(Str,Codes), % [84,87,70,117]
     close(Str),
     atom_codes(String, Codes), % TWFu
