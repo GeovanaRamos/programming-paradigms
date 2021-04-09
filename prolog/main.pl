@@ -3,6 +3,9 @@
 % TODO
 % usar o padding = (excecao no W)
 
+% = de acordo com o resto de mod 3
+% só remover do decode 
+
 % se tem -i/ --ignore-garbage, só muda a forma de operar (APENAS PARA DECODE). 
 
 :- initialization(main, main).
@@ -131,8 +134,12 @@ encode(W, Filename) :-
     ).
 
 
-% Print accordin to W parameter
+% Print according to W parameter
+print_char(C) :- atom(C), write(C).
+print_char(_) :- !.
+
 print_formatted_decode([]) :- !.
+print_formatted_decode([H|[]]) :- maplist(print_char, H), writeln(''), !.
 print_formatted_decode([H|T]) :- 
     string_chars(String, H),
     writeln(String),
