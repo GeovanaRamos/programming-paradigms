@@ -120,19 +120,27 @@ encode(W, Filename) :-
 
     part(BinaryFilled, 6, BinaryGroups), % [[0,1,..,N],[1,0,..,N],..] N=6
 
-    bin_to_index(BinaryGroups, IndexList, 0),    
-    index_to_base64(IndexList, Base64, 0),
-    
+    bin_to_index(BinaryGroups, IndexList, 0), % [12, 32, 43] 
+    index_to_base64(IndexList, Base64, 0), % [X, y, z]
+
+    length(Codes, BaseLength),
+    add_padding(BaseLength, Base64, NewBase64), % [X, y, z, =, =]
+
     atom_number(W, NewW),
 
+    % Format output
     ( NewW>0 ->
-        part(Base64, NewW, Concat),
+        part(NewBase64, NewW, Concat),
         print_formatted_decode(Concat)
     ;
-        atomic_list_concat(Base64, Base64Concat),
+        atomic_list_concat(NewBase64, Base64Concat),
         writeln(Base64Concat)
     ).
 
+% Pad with "="
+add_padding(BaseLength, Base64, NewBase64) :- BaseLength mod 3 =:= 1, append(Base64, ['=', '='], NewBase64).
+add_padding(BaseLength, Base64, NewBase64) :- BaseLength mod 3 =:= 2, append(Base64, ['='], NewBase64).
+add_padding(_, Base64, NewBase64) :- NewBase64 = Base64.
 
 % Print according to W parameter
 print_char(C) :- atom(C), write(C).
