@@ -1,13 +1,5 @@
 #!/usr/bin/env swipl
 
-% TODO
-% usar o padding = (excecao no W)
-
-% = de acordo com o resto de mod 3
-% só remover do decode 
-
-% se tem -i/ --ignore-garbage, só muda a forma de operar (APENAS PARA DECODE). 
-
 :- initialization(main, main).
 :- use_module(library(clpfd)).
 
@@ -99,7 +91,7 @@ Escrito por Simon Josefsson.').
 call_encode_or_decode(I, _, '--decode', Filename) :- atom(I), decode(I, Filename).
 call_encode_or_decode(_, _, '--decode', Filename) :- decode(0, Filename).
 call_encode_or_decode(_, W, _, Filename) :- atom(W), encode(W, Filename).
-call_encode_or_decode(_, _, _, Filename) :- encode('0', Filename).
+call_encode_or_decode(_, _, _, Filename) :- encode('76', Filename).
 
 
 % Encode message
@@ -136,6 +128,7 @@ encode(W, Filename) :-
         atomic_list_concat(NewBase64, Base64Concat),
         writeln(Base64Concat)
     ).
+
 
 % Pad with "="
 add_padding(BaseLength, Base64, NewBase64) :- BaseLength mod 3 =:= 1, append(Base64, ['=', '='], NewBase64).
