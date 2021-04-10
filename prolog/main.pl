@@ -5,6 +5,9 @@
 
 
 main(ArgsList):-
+    
+    set_prolog_flag(encoding, iso_latin_1),
+
     parse_arguments(ArgsList, I, W, Mode, Filename),
     ( exists_file(Filename) ->
         call_encode_or_decode(I, W, Mode, Filename),
