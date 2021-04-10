@@ -178,14 +178,15 @@ decode(I, Filename) :-
     open(Filename, read, Str),
     read_stream_to_codes(Str,Codes), % [84,87,70,117]
     close(Str),
-
+    
+    delete(Codes, 61, NewCodes),
     ( I=0 ->
-        NewCodes = Codes
+        NewNewCodes = NewCodes
     ;
-        filter_codes(I, Codes, NewCodes)
+        filter_codes(Codes, NewNewCodes)
     ),
     
-    atom_codes(String, NewCodes), % TWFu
+    atom_codes(String, NewNewCodes), % TWFu
     string_chars(String, Chars), % [T,W,F,u]
     index_to_base64(IndexList, Chars, 1), % [19,22,5,46]
 
@@ -207,38 +208,38 @@ decode(I, Filename) :-
 
 
 % Remove non valid chars
-filter_codes(_, [], _) :- !.
-filter_codes(_,[H|[]], [NewH|[]]) :- 
+filter_codes([], _) :- !.
+filter_codes([H|[]], [NewH|[]]) :- 
     (H>64,H<91), % A,B,C,D,...
     NewH = H.
-filter_codes(_,[H|[]], [NewH|[]]) :- 
+filter_codes([H|[]], [NewH|[]]) :- 
     (H>96,H<123), % a,b,c,d,...
     NewH = H.
-filter_codes(_,[H|[]], [NewH|[]]) :- 
+filter_codes([H|[]], [NewH|[]]) :- 
     (H>46,H<58), % /,1,2,3,4,...
     NewH = H.
-filter_codes(_,[H|[]], [NewH|[]]) :- 
+filter_codes([H|[]], [NewH|[]]) :- 
     H=43, % +
     NewH = H.
-filter_codes(_,[_|[]], []) :- !.
-filter_codes(I, [H|T], [NewH|NewT]) :- 
+filter_codes([_|[]], []) :- !.
+filter_codes([H|T], [NewH|NewT]) :- 
     (H>64,H<91), % A,B,C,D,...
     NewH = H,
-    filter_codes(I, T, NewT).
-filter_codes(I, [H|T], [NewH|NewT]) :- 
+    filter_codes(T, NewT).
+filter_codes([H|T], [NewH|NewT]) :- 
     (H>96,H<123), % a,b,c,d,...
     NewH = H,
-    filter_codes(I, T, NewT).
-filter_codes(I, [H|T], [NewH|NewT]) :- 
+    filter_codes(T, NewT).
+filter_codes([H|T], [NewH|NewT]) :- 
     (H>46,H<58), % /,1,2,3,4,...
     NewH = H,
-    filter_codes(I, T, NewT).
-filter_codes(I, [H|T], [NewH|NewT]) :- 
+    filter_codes(T, NewT).
+filter_codes([H|T], [NewH|NewT]) :- 
     H=43, % +
     NewH = H,
-    filter_codes(I, T, NewT).
-filter_codes(I, [_|T], NewCodes) :- 
-    filter_codes(I, T, NewCodes).
+    filter_codes(T, NewT).
+filter_codes([_|T], NewCodes) :- 
+    filter_codes(T, NewCodes).
 
 
 % Convert ASCII list to Binary list
