@@ -91,10 +91,10 @@ Escrito por Simon Josefsson.').
 
 
 % Decide each mode to call
-call_encode_or_decode(I, _, '--decode', Filename) :- atom(I), decode(I, Filename).
-call_encode_or_decode(_, _, '--decode', Filename) :- decode(0, Filename).
-call_encode_or_decode(_, W, _, Filename) :- atom(W), encode(W, Filename).
-call_encode_or_decode(_, _, _, Filename) :- encode('76', Filename).
+call_encode_or_decode(_, W, 0, Filename) :- atom(W), encode(W, Filename).
+call_encode_or_decode(_, _, 0, Filename) :- encode('76', Filename).
+call_encode_or_decode(I, _, 1, Filename) :- number(I), decode(1, Filename).
+call_encode_or_decode(_, _, 1, Filename) :- decode(0, Filename).
 
 
 % Encode message
