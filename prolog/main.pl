@@ -40,12 +40,30 @@ parse_arguments([Arg|ArgList], I, W, Mode, Filename) :-
     Arg='--ignore-garbage';Arg='-i', 
     I=1, 
     parse_arguments(ArgList, I, W, Mode, Filename).
+parse_arguments([Arg|_], _, _, _, _) :- 
+    string_chars(Arg, Chars),
+    [Fchar|Tail] = Chars,
+    Fchar = '-',
+    [Schar|_] = Tail,
+    Schar = '-',
+    write('base64: opção não reconhecida “'),
+    write(Arg),
+    writeln('”\nTente "base64 --help" para mais informações.'),
+    halt(0).
+parse_arguments([Arg|_], _, _, _, _) :- 
+    string_chars(Arg, Chars),
+    [Fchar|_] = Chars,
+    Fchar = '-',
+    write('base64: opção inválida “'),
+    write(Arg),
+    writeln('”\nTente "base64 --help" para mais informações.'),
+    halt(0).
 parse_arguments([Arg|ArgList], I, W, Mode, Filename) :- 
     Filename=Arg,
     parse_arguments(ArgList, I, W, Mode, Filename).
-parse_arguments([Arg|_], _, _, _, _) :- 
-    write('base64: opção inválida -- “'),
-    write(Arg),
+parse_arguments(_, _, _, _, Filename) :- 
+    write('base64: operando extra “'),
+    write(Filename),
     writeln('”\nTente "base64 --help" para mais informações.'),
     halt(0).
 
