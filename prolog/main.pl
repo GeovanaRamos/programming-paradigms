@@ -3,6 +3,9 @@
 :- initialization(main, main).
 :- use_module(library(clpfd)).
 
+% TODO
+% Opção I
+% Remover = do decode
 
 main(ArgsList):-
     
@@ -113,6 +116,7 @@ call_encode_or_decode(_, W, 0, Filename) :- atom(W), encode(W, Filename).
 call_encode_or_decode(_, _, 0, Filename) :- encode('76', Filename).
 call_encode_or_decode(I, _, 1, Filename) :- number(I), decode(1, Filename).
 call_encode_or_decode(_, _, 1, Filename) :- decode(0, Filename).
+call_encode_or_decode(_, _, 1, _) :- writeln('base64: entrada inválida').
 
 
 % Encode message
@@ -156,6 +160,7 @@ add_padding(BaseLength, Base64, NewBase64) :- BaseLength mod 3 =:= 1, append(Bas
 add_padding(BaseLength, Base64, NewBase64) :- BaseLength mod 3 =:= 2, append(Base64, ['='], NewBase64).
 add_padding(_, Base64, NewBase64) :- NewBase64 = Base64.
 
+
 % Print according to W parameter
 print_char(C) :- atom(C), write(C).
 print_char(_) :- !.
@@ -173,7 +178,14 @@ decode(I, Filename) :-
     open(Filename, read, Str),
     read_stream_to_codes(Str,Codes), % [84,87,70,117]
     close(Str),
-    atom_codes(String, Codes), % TWFu
+
+    ( I=0 ->
+        NewCodes = Codes
+    ;
+        filter_codes(I, Codes, NewCodes)
+    ),
+    
+    atom_codes(String, NewCodes), % TWFu
     string_chars(String, Chars), % [T,W,F,u]
     index_to_base64(IndexList, Chars, 1), % [19,22,5,46]
 
@@ -191,7 +203,42 @@ decode(I, Filename) :-
     codes_to_bin(BinaryCodes, BinaryGroups, 1),
     atom_codes(Text, BinaryCodes),
 
-    writeln(Text).
+    write(Text).
+
+
+% Remove non valid chars
+filter_codes(_, [], _) :- !.
+filter_codes(_,[H|[]], [NewH|[]]) :- 
+    (H>64,H<91), % A,B,C,D,...
+    NewH = H.
+filter_codes(_,[H|[]], [NewH|[]]) :- 
+    (H>96,H<123), % a,b,c,d,...
+    NewH = H.
+filter_codes(_,[H|[]], [NewH|[]]) :- 
+    (H>46,H<58), % /,1,2,3,4,...
+    NewH = H.
+filter_codes(_,[H|[]], [NewH|[]]) :- 
+    H=43, % +
+    NewH = H.
+filter_codes(_,[_|[]], []) :- !.
+filter_codes(I, [H|T], [NewH|NewT]) :- 
+    (H>64,H<91), % A,B,C,D,...
+    NewH = H,
+    filter_codes(I, T, NewT).
+filter_codes(I, [H|T], [NewH|NewT]) :- 
+    (H>96,H<123), % a,b,c,d,...
+    NewH = H,
+    filter_codes(I, T, NewT).
+filter_codes(I, [H|T], [NewH|NewT]) :- 
+    (H>46,H<58), % /,1,2,3,4,...
+    NewH = H,
+    filter_codes(I, T, NewT).
+filter_codes(I, [H|T], [NewH|NewT]) :- 
+    H=43, % +
+    NewH = H,
+    filter_codes(I, T, NewT).
+filter_codes(I, [_|T], NewCodes) :- 
+    filter_codes(I, T, NewCodes).
 
 
 % Convert ASCII list to Binary list
