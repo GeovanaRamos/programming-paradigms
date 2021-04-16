@@ -13,7 +13,7 @@ _start:
 
     mov ebx, file       ; saves filename
     mov eax, 5          ; sys_open
-    mov ecx, 0          ; restart syscall
+    mov ecx, 0          ; for read only access
     int 80h       
 
     mov eax, 3          ; sys_read
@@ -28,7 +28,7 @@ _start:
     mov edx, len    
     int 80h     
 
-    mov eax, 6          
+    mov eax, 6          ; sys_close
     int 80h     
 
     mov eax, 1          ; sys_exit
