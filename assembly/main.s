@@ -1,10 +1,12 @@
 section .data
     file db './text.txt', 0
     len equ 1024
+    base64 db 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/', 0
 
 section .bss 
     buffer resb 3
     fd_in  resb 1
+    res resb 4
 
 
 section .text
@@ -29,13 +31,49 @@ read:
     cmp eax, 0	        ; If eax=0, sys_read reached EOF on stdin NUMERO DE CHARS LIDOS
 	je exit			    ; Jump If Equal (to 0, from compare)
 
+    
+    ; EDX = [0,A,B,C]
+    mov byte dh, [buffer]
+    mov byte dl, [buffer+1]
+    shl edx, 8
+    mov byte dl, [buffer+2]
+
+    ; 6 bits
+    mov esi, edx
+    shl edx, 14
+    shr edx, 14
+    shr esi, 18
+    mov byte al, [base64+esi]
+    mov [res], al
+
+    ; 6 - 12 bits
+    mov esi, edx
+    shl edx, 20
+    shr edx, 20
+    shr esi, 12
+    mov byte al, [base64+esi]
+    mov [res+1], al
+
+    ; 12 - 18 bits
+    mov esi, edx
+    shl edx, 26
+    shr edx, 26
+    shr esi, 6
+    mov byte al, [base64+esi]
+    mov [res+2], al
+
+    ; 18 - 24 bits
+    mov esi, edx
+    mov byte al, [base64+esi]
+    mov [res+3], al
+
     mov eax, 4          ; sys_write
     mov ebx, 1          ; stdout
-    mov ecx, buffer
-    mov edx, 3          ; 3 chars at a time
+    mov ecx, res
+    mov edx, 4          ; 4 chars at a time
     int 80h      
 
-    jmp read
+    ;jmp read
 
 
 exit:
