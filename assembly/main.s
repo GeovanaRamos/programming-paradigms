@@ -22,7 +22,7 @@ _start:
 
     mov  [fd_in], eax   
 
-    mov edi, 0 ; total res characters
+    mov edi, 0          ; total res characters
 
 read: 
     mov eax, 3          ; sys_read    
@@ -33,14 +33,23 @@ read:
 
     cmp eax, 0	        ; if eax=0, sys_read reached EOF 
 	je exit	
+    mov ebx, eax        ; copy char count
 		    
-
     ; EDX = [0,A,B,C]
     mov byte dh, [buffer]
     mov byte dl, [buffer+1]
     shl edx, 8
     mov byte dl, [buffer+2]
 
+    ; pad zeros
+    cmp ebx, 3
+    je encode
+    mov byte dl, 0      ; padded one 0
+    cmp ebx, 2
+    je encode
+    mov byte dh, 0      ; padded two 0s
+
+    encode:
     ; 6 bits
     mov esi, edx
     shl edx, 14
@@ -70,20 +79,33 @@ read:
     mov byte al, [base64+esi]
     mov [res+3], al
 
+        ; pad zeros
+    cmp ebx, 3
+    je print_encode
+    mov byte [res+3], '='      ; padded one =
+    cmp ebx, 2
+    je print_encode
+    mov byte [res+2], '='      ; padded two =
+
+    print_encode:
+    ; print
     mov eax, 4          ; sys_write
     mov ebx, 1          ; stdout
     mov ecx, res
     mov edx, 4          ; 4 chars at a time
     int 80h      
 
-    add edi, 4          ; update character count
+    ; update character count
+    add edi, 4          
 
+    ; check line chars 
     mov eax, edi
     mov bl, 76
     div bl
-    cmp ah, 0           ; if edi%76=0, print linebreak       
+    cmp ah, 0           ; if line has 76 chars       
     jne read 
 
+    ; print linebreak
     mov eax, 4          ; sys_write
     mov ebx, 1          ; stdout
     mov ecx, new_line   
