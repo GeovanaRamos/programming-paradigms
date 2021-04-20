@@ -2,6 +2,7 @@ section .data
     file db './text.txt', 0
     len equ 1024
     base64 db 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/', 0
+    new_line db 0x0a
 
 section .bss 
     buffer resb 3
@@ -19,7 +20,9 @@ _start:
     mov ecx, 0          ; for read only access
     int 80h      
 
-    mov  [fd_in], eax
+    mov  [fd_in], eax   
+
+    mov edi, 0 ; total res characters
 
 read: 
     mov eax, 3          ; sys_read    
@@ -29,7 +32,8 @@ read:
     int 80h     
 
     cmp eax, 0	        ; if eax=0, sys_read reached EOF 
-	je exit			    
+	je exit	
+		    
 
     ; EDX = [0,A,B,C]
     mov byte dh, [buffer]
@@ -72,12 +76,32 @@ read:
     mov edx, 4          ; 4 chars at a time
     int 80h      
 
+    add edi, 4          ; update character count
+
+    mov eax, edi
+    mov bl, 76
+    div bl
+    cmp ah, 0           ; if edi%76=0, print linebreak       
+    jne read 
+
+    mov eax, 4          ; sys_write
+    mov ebx, 1          ; stdout
+    mov ecx, new_line   
+    mov edx, 1          
+    int 80h
+
     jmp read
 
 
 exit:
     mov eax, 6          ; sys_close
-    int 80h     
+    int 80h  
+
+    mov eax, 4          ; sys_write
+    mov ebx, 1          ; stdout
+    mov ecx, new_line   
+    mov edx, 1          
+    int 80h   
 
     mov eax, 1          ; sys_exit
     mov ebx, 0 
