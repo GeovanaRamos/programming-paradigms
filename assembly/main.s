@@ -5,7 +5,7 @@ section .data
 
 section .bss 
     buffer resb 3
-    fd_in  resb 1
+    fd_in  resd 1
     res resb 4
 
 
@@ -28,10 +28,9 @@ read:
     mov edx, 3          ; 3 chars at a time    
     int 80h     
 
-    cmp eax, 0	        ; If eax=0, sys_read reached EOF on stdin NUMERO DE CHARS LIDOS
-	je exit			    ; Jump If Equal (to 0, from compare)
+    cmp eax, 0	        ; if eax=0, sys_read reached EOF 
+	je exit			    
 
-    
     ; EDX = [0,A,B,C]
     mov byte dh, [buffer]
     mov byte dl, [buffer+1]
@@ -73,7 +72,7 @@ read:
     mov edx, 4          ; 4 chars at a time
     int 80h      
 
-    ;jmp read
+    jmp read
 
 
 exit:
