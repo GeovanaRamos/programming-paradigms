@@ -47,39 +47,23 @@ read:
     mov byte dl, 0      ; padded one 0
     cmp ebx, 2
     je encode
-    mov byte dh, 0      ; padded two 0s
+    mov byte dh, 0      ; padded two 0s        
 
     encode:
-    ; 6 bits
-    mov esi, edx
-    shl edx, 14
-    shr edx, 14
-    shr esi, 18
-    mov byte al, [base64+esi]
-    mov [res], al
+    shl edx, 8          ; EDX = [A,B,C,0] 
+    mov ecx, 0          ; counter
 
-    ; 6 - 12 bits
-    mov esi, edx
-    shl edx, 20
-    shr edx, 20
-    shr esi, 12
-    mov byte al, [base64+esi]
-    mov [res+1], al
+    fill_res:
+        mov esi, edx
+        shr esi, 26         ; get first 6 bits
+        mov byte al, [base64+esi]
+        mov byte [res+ecx], al
+        shl edx, 6          ; clear first 6 bits
+        inc ecx
+        cmp ecx, 4
+        jne fill_res
 
-    ; 12 - 18 bits
-    mov esi, edx
-    shl edx, 26
-    shr edx, 26
-    shr esi, 6
-    mov byte al, [base64+esi]
-    mov [res+2], al
-
-    ; 18 - 24 bits
-    mov esi, edx
-    mov byte al, [base64+esi]
-    mov [res+3], al
-
-        ; pad zeros
+    ; pad =
     cmp ebx, 3
     je print_encode
     mov byte [res+3], '='      ; padded one =
