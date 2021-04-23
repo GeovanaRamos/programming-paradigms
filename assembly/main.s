@@ -1,11 +1,11 @@
 section .data
-    file db './text.txt', 0
+    file db './text2.txt', 0
     len equ 1024
-    base64 db 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/', 0
+    base64 db 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=', 0
     new_line db 0x0a
 
 section .bss 
-    buffer resb 3
+    buffer resb 4
     fd_in  resd 1
     res resb 4
 
@@ -21,6 +21,8 @@ _start:
     int 80h      
 
     mov  [fd_in], eax   
+
+    jmp decode_loop
 
     mov edi, 0          ; total res characters
 
@@ -97,6 +99,62 @@ read:
     int 80h
 
     jmp read
+
+
+decode_loop:
+    
+    mov eax, 3          ; sys_read    
+    mov ebx, [fd_in]
+    mov ecx, buffer     
+    mov edx, 4          ; 4 chars at a time    
+    int 80h     
+
+    cmp eax, 0	        ; if eax=0, sys_read reached EOF 
+	je exit	
+    cmp eax, 5			; invalid base64 input
+	je exit				
+
+    xor esi, esi
+    xor edx, edx
+
+    ; replace base64 char by its index
+    find_index:
+        xor ebx, ebx
+        iterate_base64:
+            cmp ebx, 65         ; invalid base64 input
+            je exit
+            mov byte al, [buffer + esi] 
+            mov byte cl, [base64 + ebx] 
+            inc ebx	
+            cmp al, cl          ; found index
+            jne iterate_base64
+            cmp ebx, 64         ; if it is '='
+            jne save_index
+            mov ebx, 1          ; ebx will be 0
+        save_index:    
+        dec ebx
+        shl edx, 6          ; clears space for next index
+        or dl, bl           ; add index to edx
+        inc esi
+        cmp esi, 4
+        jne find_index
+    
+    
+    mov byte [res+2], dl 
+    shr edx, 8
+    mov byte [res+1], dl
+    shr edx, 8
+    mov byte [res], dl
+
+    ; print
+    mov eax, 4          ; sys_write
+    mov ebx, 1          ; stdout
+    mov ecx, res
+    mov edx, 5          ; 3 chars at a time
+    int 80h      
+
+    jmp decode_loop
+
 
 
 exit:

@@ -3,10 +3,6 @@
 :- initialization(main, main).
 :- use_module(library(clpfd)).
 
-% TODO
-% Opção I
-% Remover = do decode
-
 main(ArgsList):-
     
     set_prolog_flag(encoding, iso_latin_1),
