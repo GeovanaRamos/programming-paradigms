@@ -3,6 +3,7 @@ section .data
     len equ 1024
     base64 db 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=', 0
     new_line db 0x0a
+    not_found db 'Arquivo não encontrado', 0x0a, 0
 
 section .bss 
     buffer resb 4
@@ -15,16 +16,26 @@ section .text
 
 _start:
 
-    mov ebx, file       ; saves filename
+    pop ebx             ; argc
+    cmp ebx, 2          ; check if there are at least two
+    jl exit
+    
+    pop ebx             ; remove ./main
+    pop ebx             ; next argument
+
+    ;mov ebx, ebx       ; saves filename
     mov eax, 5          ; sys_open
     mov ecx, 0          ; for read only access
-    int 80h      
+    int 80h   
+
+    cmp eax, 0          ; error on sys_open
+    jl file_not_found   
 
     mov  [fd_in], eax   
 
     jmp decode_loop
 
-    mov edi, 0          ; total res characters
+    mov edi, 0          ; total res characters for encoding
 
 read: 
     mov eax, 3          ; sys_read    
@@ -111,8 +122,8 @@ decode_loop:
 
     cmp eax, 0	        ; if eax=0, sys_read reached EOF 
 	je exit	
-    cmp eax, 5			; invalid base64 input
-	je exit				
+    cmp eax, 4			; invalid base64 input
+	jl exit				
 
     xor esi, esi
     xor edx, edx
@@ -156,6 +167,14 @@ decode_loop:
     jmp decode_loop
 
 
+file_not_found:
+    mov esi, ebx
+
+    mov eax, 4          ; sys_write
+    mov ebx, 1          ; stdout
+    mov ecx, not_found   
+    mov edx, 24          
+    int 80h   
 
 exit:
     mov eax, 6          ; sys_close
