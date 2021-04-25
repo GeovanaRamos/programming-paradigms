@@ -4,6 +4,8 @@ section .data
     base64 db 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=', 0
     new_line db 0x0a
     not_found db 'Arquivo não encontrado', 0x0a, 0
+    help_msg db 'Ajuda', 0x0a, 0
+    version_msg db 'Version', 0x0a, 0
 
 section .bss 
     buffer resb 4
@@ -17,13 +19,99 @@ section .text
 _start:
 
     pop ebx             ; argc
-    cmp ebx, 2          ; check if there are at least two
+    mov edi, ebx
+    cmp edi, 2          ; check if there are at least two
     jl exit
     
     pop ebx             ; remove ./main
-    pop ebx             ; next argument
+    dec edi
+    mov esi, 0          ; 0=encode 1=decode
 
-    ;mov ebx, ebx       ; saves filename
+    parse_arguments:
+        cmp edi, 0
+        je read_file
+        dec edi
+
+        pop ebx             ; next argument
+        cmp byte [ebx], '-'
+        je is_double      
+        mov edx, ebx        ; saves filename
+        jmp parse_arguments
+
+        is_double:
+        cmp byte [ebx+1], '-'
+        jne is_help
+        je is_help_double
+
+        is_help:
+        cmp byte [ebx+1], 'h'
+        jne is_version
+        je help
+
+        is_version:
+        cmp byte [ebx+1], 'v'
+        jne is_decode
+        je version
+
+        is_decode:
+        cmp byte [ebx+1], 'd'
+        jne parse_arguments
+        mov esi, 1
+        jmp parse_arguments
+
+        is_help_double:
+        cmp byte [ebx+2], 'h'
+        jne is_version_double
+        cmp byte [ebx+3], 'e'
+        jne is_version_double
+        cmp byte [ebx+4], 'l'
+        jne is_version_double
+        cmp byte [ebx+5], 'p'
+        jne is_version_double
+        cmp byte [ebx+6], 0
+        jne is_version_double
+        je help
+
+        is_version_double:
+        cmp byte [ebx+2], 'v'
+        jne is_decode_double
+        cmp byte [ebx+3], 'e'
+        jne is_decode_double
+        cmp byte [ebx+4], 'r'
+        jne is_decode_double
+        cmp byte [ebx+5], 's'
+        jne is_decode_double
+        cmp byte [ebx+6], 'i'
+        jne is_decode_double
+        cmp byte [ebx+7], 'o'
+        jne is_decode_double
+        cmp byte [ebx+8], 'n'
+        jne is_decode_double
+        cmp byte [ebx+9], 0
+        jne is_decode_double
+        je version
+
+        is_decode_double:
+        cmp byte [ebx+2], 'd'
+        jne parse_arguments
+        cmp byte [ebx+3], 'e'
+        jne parse_arguments
+        cmp byte [ebx+4], 'c'
+        jne parse_arguments
+        cmp byte [ebx+5], 'o'
+        jne parse_arguments
+        cmp byte [ebx+6], 'd'
+        jne parse_arguments
+        cmp byte [ebx+7], 'e'
+        jne parse_arguments
+        cmp byte [ebx+8], 0
+        jne parse_arguments
+        mov esi, 1
+        jmp parse_arguments
+
+
+    read_file:
+    mov ebx, edx        ; saves filename
     mov eax, 5          ; sys_open
     mov ecx, 0          ; for read only access
     int 80h   
@@ -31,13 +119,52 @@ _start:
     cmp eax, 0          ; error on sys_open
     jl file_not_found   
 
-    mov  [fd_in], eax   
+    mov  [fd_in], eax  
 
-    jmp decode_loop
+    cmp esi, 1          ; go to encode or decode
+    je  decode_loop
 
     mov edi, 0          ; total res characters for encoding
+    jmp encode_loop
 
-read: 
+
+version:
+    mov esi, ebx
+
+    mov eax, 4          ; sys_write
+    mov ebx, 1          ; stdout
+    mov ecx, version_msg   
+    mov edx, 8          
+    int 80h   
+
+    jmp exit    
+
+
+help:
+    mov esi, ebx
+
+    mov eax, 4          ; sys_write
+    mov ebx, 1          ; stdout
+    mov ecx, help_msg   
+    mov edx, 7          
+    int 80h   
+
+    jmp exit    
+
+
+file_not_found:
+    mov esi, ebx
+
+    mov eax, 4          ; sys_write
+    mov ebx, 1          ; stdout
+    mov ecx, not_found   
+    mov edx, 24          
+    int 80h   
+
+    jmp exit
+
+
+encode_loop: 
     mov eax, 3          ; sys_read    
     mov ebx, [fd_in]
     mov ecx, buffer     
@@ -100,7 +227,7 @@ read:
     mov bl, 76
     div bl
     cmp ah, 0           ; if line has 76 chars       
-    jne read 
+    jne encode_loop 
 
     ; print linebreak
     mov eax, 4          ; sys_write
@@ -109,7 +236,7 @@ read:
     mov edx, 1          
     int 80h
 
-    jmp read
+    jmp encode_loop
 
 
 decode_loop:
@@ -167,14 +294,7 @@ decode_loop:
     jmp decode_loop
 
 
-file_not_found:
-    mov esi, ebx
 
-    mov eax, 4          ; sys_write
-    mov ebx, 1          ; stdout
-    mov ecx, not_found   
-    mov edx, 24          
-    int 80h   
 
 exit:
     mov eax, 6          ; sys_close
