@@ -259,14 +259,14 @@ decode_loop:
     find_index:
         xor ebx, ebx
         iterate_base64:
-            cmp ebx, 65         ; invalid base64 input
-            je exit
+            cmp ebx, 66         ; invalid base64 input
+            je file_not_found
             mov byte al, [buffer + esi] 
             mov byte cl, [base64 + ebx] 
             inc ebx	
             cmp al, cl          ; found index
             jne iterate_base64
-            cmp ebx, 64         ; if it is '='
+            cmp ebx, 65         ; if it is '='
             jne save_index
             mov ebx, 1          ; ebx will be 0
         save_index:    
