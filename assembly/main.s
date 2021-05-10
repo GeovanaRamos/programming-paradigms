@@ -172,7 +172,7 @@ encode_loop:
     int 80h     
 
     cmp eax, 0	        ; if eax=0, sys_read reached EOF 
-	je exit	
+	je new_line_exit	
     mov ebx, eax        ; copy char count
 		    
     ; EDX = [0,A,B,C]
@@ -294,9 +294,7 @@ decode_loop:
     jmp decode_loop
 
 
-
-
-exit:
+new_line_exit:
     mov eax, 6          ; sys_close
     int 80h  
 
@@ -305,6 +303,15 @@ exit:
     mov ecx, new_line   
     mov edx, 1          
     int 80h   
+
+    mov eax, 1          ; sys_exit
+    mov ebx, 0 
+    int 80h
+
+
+exit:
+    mov eax, 6          ; sys_close
+    int 80h  
 
     mov eax, 1          ; sys_exit
     mov ebx, 0 
