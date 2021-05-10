@@ -1,5 +1,4 @@
 section .data
-    file db './text2.txt', 0
     len equ 1024
     base64 db 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=', 0
     new_line db 0x0a
