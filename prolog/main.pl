@@ -14,7 +14,7 @@ main(ArgsList):-
     ;
         write('base64: '),
         write(Filename),
-        writeln(': Arquivo ou diretório inexistente'),
+        writeln(': No such file or directory'),
         halt(0)
     ).
 
@@ -32,7 +32,7 @@ parse_arguments([Arg|ArgList], I, W, Mode, Filename) :-
         W=Val,
         parse_arguments(T, I, W, Mode, Filename)
     ;
-        writeln('base64: a opção requer um argumento -- “w”\nTente "base64 --help" para mais informações.'),
+        writeln('base64: option requires an argument -- \'w\'\nTry \'base64 --help\' for more information.'),
         halt(0)
     ).
 parse_arguments([Arg|ArgList], I, W, Mode, Filename) :- 
@@ -45,74 +45,45 @@ parse_arguments([Arg|_], _, _, _, _) :-
     Fchar = '-',
     [Schar|_] = Tail,
     Schar = '-',
-    write('base64: opção não reconhecida “'),
+    write('base64: unrecognized option \''),
     write(Arg),
-    writeln('”\nTente "base64 --help" para mais informações.'),
+    writeln('\'\nTry \'base64 --help\' for more information.'),
     halt(0).
 parse_arguments([Arg|_], _, _, _, _) :- 
     string_chars(Arg, Chars),
     [Fchar|_] = Chars,
     Fchar = '-',
-    write('base64: opção inválida “'),
+    write('base64: invalid option \''),
     write(Arg),
-    writeln('”\nTente "base64 --help" para mais informações.'),
+    writeln('\'\nTry \'base64 --help\' for more information.'),
     halt(0).
 parse_arguments([Arg|ArgList], I, W, Mode, Filename) :- 
     Filename=Arg,
     parse_arguments(ArgList, I, W, Mode, Filename).
 parse_arguments(_, _, _, _, Filename) :- 
-    write('base64: operando extra “'),
+    write('base64: extra operand \''),
     write(Filename),
-    writeln('”\nTente "base64 --help" para mais informações.'),
+    writeln('\'\nTry \'base64 --help\' for more information.'),
     halt(0).
-
 
 % Help message command
 help :-
-    writeln(
-'Uso: base64 [OPÇÃO]... [ARQUIVO]
-Codifica/decodifica na Base64 o ARQUIVO, ou entrada padrão, para saída padrão.
-
-Se ARQUIVO não for especificado ou for -, lê a entrada padrão.
-        
-Argumentos obrigatórios para opções longas também o são para opções curtas.
-  -d, --decode          decodifica os dados
-  -i, --ignore-garbage  ao decodificar, ignora caracteres não alfabéticos
-  -w, --wrap=COLS       quebra linhas codificadas após COLS caracteres
-                            (padrão: 76). Use 0 para desabilitar
-
-      --help     mostra esta ajuda e sai
-      --version  informa a versão e sai
-        
-Os dados são codificados como descrito para o alfabeto base64 na RFC 4648.
-Na decodificação, a entrada pode conter caracteres de nova linha além dos
-bytes do alfabeto base64 formal. Use --ignore-garbage para tentar se recuperar
-de quaisquer outros bytes fora do alfabeto no fluxo codificado.
-
-Página de ajuda do GNU coreutils: <https://www.gnu.org/software/coreutils/>
-Relate erros de tradução do base64: <https://translationproject.org/team/pt_BR.html>
-Documentação completa em: <https://www.gnu.org/software/coreutils/base64>
-ou disponível localmente via: info "(coreutils) base64 invocation"').
-
+    open('../help.txt', read, Str),
+    read_stream_to_codes(Str, X), 
+    writef("%s", [X]), writeln('').
 
 % Version message command
 version :-
-    writeln(
-'base64 (GNU coreutils) 8.30
-Copyright (C) 2018 Free Software Foundation, Inc.
-Licença GPLv3+: GNU GPL versão 3 ou posterior <https://gnu.org/licenses/gpl.html>
-Este é um software livre: você é livre para alterá-lo e redistribuí-lo.
-NÃO HÁ QUALQUER GARANTIA, na máxima extensão permitida em lei.
-
-Escrito por Simon Josefsson.').
-
+    open('../version.txt', read, Str),
+    read_stream_to_codes(Str, X), 
+    writef("%s", [X]), writeln('').
 
 % Decide each mode to call
 call_encode_or_decode(_, W, 0, Filename) :- atom(W), encode(W, Filename).
 call_encode_or_decode(_, _, 0, Filename) :- encode('76', Filename).
 call_encode_or_decode(I, _, 1, Filename) :- number(I), decode(1, Filename).
 call_encode_or_decode(_, _, 1, Filename) :- decode(0, Filename).
-call_encode_or_decode(_, _, 1, _) :- writeln('base64: entrada inválida').
+call_encode_or_decode(_, _, 1, _) :- writeln('base64: invalid input').
 
 
 % Encode message

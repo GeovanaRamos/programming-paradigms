@@ -2,9 +2,10 @@ section .data
     len equ 1024
     base64 db 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=', 0
     new_line db 0x0a
-    not_found db 'Arquivo não encontrado', 0x0a, 0
-    help_msg db 'Ajuda', 0x0a, 0
-    version_msg db 'Version', 0x0a, 0
+    not_found_intro db 'base64: ', 0
+    not_found db ': No such file or directory', 0x0a, 0
+    help_file db '../help.txt', 0
+    version_file db '../version.txt', 0
 
 section .bss 
     buffer resb 4
@@ -128,27 +129,43 @@ _start:
 
 
 version:
-    mov esi, ebx
-
-    mov eax, 4          ; sys_write
-    mov ebx, 1          ; stdout
-    mov ecx, version_msg   
-    mov edx, 8          
+    mov ebx, version_file; saves filename
+    mov eax, 5          ; sys_open
+    mov ecx, 0          ; for read only access
     int 80h   
 
-    jmp exit    
+    mov  [fd_in], eax  
 
+    jmp read_loop
 
 help:
-    mov esi, ebx
+    mov ebx, help_file  ; saves filename
+    mov eax, 5          ; sys_open
+    mov ecx, 0          ; for read only access
+    int 80h   
+
+    mov  [fd_in], eax  
+
+    jmp read_loop
+
+read_loop:
+    mov eax, 3          ; sys_read    
+    mov ebx, [fd_in]
+    mov ecx, buffer     
+    mov edx, 3          ; 3 chars at a time    
+    int 80h     
+
+    cmp eax, 0	        ; if eax=0, sys_read reached EOF 
+    je new_line_exit	
+    mov esi, eax        ; copy char count
 
     mov eax, 4          ; sys_write
     mov ebx, 1          ; stdout
-    mov ecx, help_msg   
-    mov edx, 7          
+    mov ecx, buffer   
+    mov edx, esi          
     int 80h   
 
-    jmp exit    
+    jmp read_loop   
 
 
 file_not_found:
@@ -156,11 +173,23 @@ file_not_found:
 
     mov eax, 4          ; sys_write
     mov ebx, 1          ; stdout
-    mov ecx, not_found   
-    mov edx, 24          
+    mov ecx, not_found_intro   
+    mov edx, 9          
     int 80h   
 
-    jmp exit
+    mov eax, 4          ; sys_write
+    mov ebx, 1          ; stdout
+    mov ecx, esi   
+    mov edx, 10          
+    int 80h   
+
+    mov eax, 4          ; sys_write
+    mov ebx, 1          ; stdout
+    mov ecx, not_found   
+    mov edx, 28          
+    int 80h   
+
+    jmp new_line_exit
 
 
 encode_loop: 
