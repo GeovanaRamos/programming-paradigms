@@ -1,0 +1,20 @@
+Example (in England):
+
+    Mr John Smith
+    132, My Street,
+    Bigtown BG23 4YZ
+    England
+
+Example (in the U.S.):
+
+    Mr John Smith
+    132, My Street,
+    Kingston, New York 12401
+    United States
+
+Example (in Nigeria):
+
+    Mr Daniel Izuchukwu Nwoye
+    8, My Street,
+    Ilassan Lekki, Lagos 105102
+    Nigeria.
