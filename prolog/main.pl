@@ -23,7 +23,8 @@ main(ArgsList):-
 parse_arguments([], _, _, _, _) :- !.
 parse_arguments(['--help'|_], _, _, _, _) :- help(), halt(0).
 parse_arguments(['--version'|_], _, _, _, _) :- version(), halt(0).
-parse_arguments(['--decode'|ArgList], I, W, Mode, Filename) :- 
+parse_arguments([Arg|ArgList], I, W, Mode, Filename) :- 
+    Arg='--decode';Arg='-d',
     Mode=1,
     parse_arguments(ArgList, I, W, Mode, Filename).
 parse_arguments([Arg|ArgList], I, W, Mode, Filename) :- 
