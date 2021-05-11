@@ -2,6 +2,7 @@ section .data
     len equ 1024
     base64 db 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=', 0
     new_line db 0x0a
+    invalid_msg db 'base64: invalid input', 0x0a, 0
     not_found_intro db 'base64: ', 0
     not_found db ': No such file or directory', 0x0a, 0
     help_file db '../help.txt', 0
@@ -40,21 +41,13 @@ _start:
 
         is_double:
         cmp byte [ebx+1], '-'
-        jne is_help
-        je is_help_double
-
-        is_help:
-        cmp byte [ebx+1], 'h'
-        jne is_version
-        je help
-
-        is_version:
-        cmp byte [ebx+1], 'v'
         jne is_decode
-        je version
+        je is_help_double
 
         is_decode:
         cmp byte [ebx+1], 'd'
+        jne parse_arguments
+        cmp byte [ebx+2], 0
         jne parse_arguments
         mov esi, 1
         jmp parse_arguments
@@ -108,7 +101,6 @@ _start:
         jne parse_arguments
         mov esi, 1
         jmp parse_arguments
-
 
     read_file:
     mov ebx, edx        ; saves filename
@@ -192,6 +184,16 @@ file_not_found:
     jmp new_line_exit
 
 
+invalid_option:
+    mov eax, 4          ; sys_write
+    mov ebx, 1          ; stdout
+    mov ecx, invalid_msg   
+    mov edx, 22          
+    int 80h   
+
+    jmp new_line_exit
+
+    
 encode_loop: 
     mov eax, 3          ; sys_read    
     mov ebx, [fd_in]
@@ -288,7 +290,7 @@ decode_loop:
         xor ebx, ebx
         iterate_base64:
             cmp ebx, 66         ; invalid base64 input
-            je file_not_found
+            je invalid_option
             mov byte al, [buffer + esi] 
             mov byte cl, [base64 + ebx] 
             inc ebx	
@@ -316,7 +318,7 @@ decode_loop:
     mov eax, 4          ; sys_write
     mov ebx, 1          ; stdout
     mov ecx, res
-    mov edx, 5          ; 3 chars at a time
+    mov edx, 3          ; 3 chars at a time
     int 80h      
 
     jmp decode_loop

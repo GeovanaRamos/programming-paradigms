@@ -162,7 +162,7 @@ decode(I, Filename) :-
 
     flatten(BinaryFilled, FlattenBinary), % [0,1,..,1,0,..]
 
-    % check if is divisible by 8 to part, otherwise fill remove zeros
+    % check if is divisible by 8 to part, otherwise remove zeros
     length(FlattenBinary, L),
     remove_zeros_end(FlattenBinary, L, BinaryRemoved),
 
