@@ -8,15 +8,9 @@ main(ArgsList):-
     set_prolog_flag(encoding, iso_latin_1),
 
     parse_arguments(ArgsList, I, W, Mode, Filename),
-    ( exists_file(Filename) ->
-        call_encode_or_decode(I, W, Mode, Filename),
-        halt(0)
-    ;
-        write('base64: '),
-        write(Filename),
-        writeln(': No such file or directory'),
-        halt(0)
-    ).
+
+    read_input(Filename, Codes),
+    call_encode_or_decode(I, W, Mode, Codes).
 
 
 % Get value for each parameter
@@ -79,20 +73,35 @@ version :-
     read_stream_to_codes(Str, X), 
     writef("%s", [X]), writeln('').
 
+
+% Read file or stdin
+read_input(Filename, Codes) :- 
+    atom(Filename),
+    ( exists_file(Filename) ->
+        open(Filename, read, Stream),
+        read_stream_to_codes(Stream,Codes), % [23,12,13]
+        close(Stream)
+    ;
+        write('base64: '),
+        write(Filename),
+        writeln(': No such file or directory'),
+        halt(0)
+    ).
+read_input(_, Codes) :-
+    read(Input),
+    atom_codes(Input, Codes).
+
+
 % Decide each mode to call
-call_encode_or_decode(_, W, 0, Filename) :- atom(W), encode(W, Filename).
-call_encode_or_decode(_, _, 0, Filename) :- encode('76', Filename).
-call_encode_or_decode(I, _, 1, Filename) :- number(I), decode(1, Filename).
-call_encode_or_decode(_, _, 1, Filename) :- decode(0, Filename).
-call_encode_or_decode(_, _, 1, _) :- writeln('base64: invalid input').
+call_encode_or_decode(_, W, 0, Codes) :- atom(W), encode(W, Codes).
+call_encode_or_decode(_, _, 0, Codes) :- encode('76', Codes).
+call_encode_or_decode(I, _, 1, Codes) :- number(I), decode(1, Codes).
+call_encode_or_decode(_, _, 1, Codes) :- decode(0, Codes).
+call_encode_or_decode(_, _, 1, _, _) :- writeln('base64: invalid input').
 
 
 % Encode message
-encode(W, Filename) :-
-    % Read file
-    open(Filename, read, Str),
-    read_stream_to_codes(Str,Codes), % [23,12,13]
-    close(Str),
+encode(W, Codes) :-
 
     codes_to_bin(Codes, Binary, 0), % % [[0,1,..,N],[1,0,..,N],..] N<=8
     pad_binary_list(Binary, BinaryList, 8), % [[0,1,..,N],[1,0,..,N],..] N=8
@@ -142,10 +151,7 @@ print_formatted_decode([H|T]) :-
 
 
 % Decode message
-decode(I, Filename) :-
-    open(Filename, read, Str),
-    read_stream_to_codes(Str,Codes), % [84,87,70,117]
-    close(Str),
+decode(I, Codes) :-
     
     delete(Codes, 61, NewCodes),
     ( I=0 ->
