@@ -21,16 +21,15 @@ _start:
 
     pop ebx             ; argc
     mov edi, ebx
-    cmp edi, 2          ; check if there are at least two
-    jl exit
     
     pop ebx             ; remove ./main
     dec edi
     mov esi, 0          ; 0=encode 1=decode
+    mov edx, 0          ; init filename
 
     parse_arguments:
         cmp edi, 0
-        je read_file
+        je read_input
         dec edi
 
         pop ebx             ; next argument
@@ -102,20 +101,25 @@ _start:
         mov esi, 1
         jmp parse_arguments
 
+    
+    read_input:
+    cmp edx, 0      ; check if filename is empty
+    jne read_file
+    mov byte [fd_in], 0
+    jmp encode_or_decode
+    
     read_file:
     mov ebx, edx        ; saves filename
     mov eax, 5          ; sys_open
     mov ecx, 0          ; for read only access
     int 80h   
-
     cmp eax, 0          ; error on sys_open
     jl file_not_found   
-
     mov  [fd_in], eax  
 
+    encode_or_decode:
     cmp esi, 1          ; go to encode or decode
     je  decode_loop
-
     mov edi, 0          ; total res characters for encoding
     jmp encode_loop
 
