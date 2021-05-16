@@ -28,7 +28,7 @@ _start:
     dec edi
     mov esi, 0          ; 0=encode 1=decode
     mov edx, 0          ; init filename
-    ; mov dword [wrap_string], '56' ; init wrap 
+    mov dword [wrap_string], '76' ; init wrap 
 
     parse_arguments:
         cmp edi, 0
@@ -62,6 +62,7 @@ _start:
         pop ebx
         dec edi
         mov ecx, 0
+        mov dword [wrap_string], 0
         copy_wrap:
             cmp byte [ebx+ecx], 0
             je parse_arguments
@@ -134,6 +135,7 @@ _start:
         pop ebx
         dec edi
         mov ecx, 0
+        mov dword [wrap_string], 0
         jmp copy_wrap
 
     

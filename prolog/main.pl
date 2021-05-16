@@ -8,8 +8,7 @@ main(ArgsList):-
     set_prolog_flag(encoding, iso_latin_1),
 
     parse_arguments(ArgsList, I, W, Mode, Filename),
-
-    read_input(Filename, Codes),
+    read_input(Filename, Codes, Mode),
     call_encode_or_decode(I, W, Mode, Codes).
 
 
@@ -17,12 +16,13 @@ main(ArgsList):-
 parse_arguments([], _, _, _, _) :- !.
 parse_arguments(['--help'|_], _, _, _, _) :- help(), halt(0).
 parse_arguments(['--version'|_], _, _, _, _) :- version(), halt(0).
-parse_arguments([Arg|ArgList], I, W, Mode, Filename) :- 
-    Arg='--decode';Arg='-d',
+parse_arguments(['--decode'|ArgList], I, W, Mode, Filename) :- 
     Mode=1,
     parse_arguments(ArgList, I, W, Mode, Filename).
-parse_arguments([Arg|ArgList], I, W, Mode, Filename) :- 
-    Arg='--wrap';Arg='-w', 
+parse_arguments(['-d'|ArgList], I, W, Mode, Filename) :- 
+    Mode=1,
+    parse_arguments(ArgList, I, W, Mode, Filename).
+parse_arguments(['--wrap'|ArgList], I, W, Mode, Filename) :- 
     ( [Val|T] = ArgList ->
         W=Val,
         parse_arguments(T, I, W, Mode, Filename)
@@ -30,8 +30,18 @@ parse_arguments([Arg|ArgList], I, W, Mode, Filename) :-
         writeln('base64: option requires an argument -- \'w\'\nTry \'base64 --help\' for more information.'),
         halt(0)
     ).
-parse_arguments([Arg|ArgList], I, W, Mode, Filename) :- 
-    Arg='--ignore-garbage';Arg='-i', 
+parse_arguments(['-w'|ArgList], I, W, Mode, Filename) :- 
+    ( [Val|T] = ArgList ->
+        W=Val,
+        parse_arguments(T, I, W, Mode, Filename)
+    ;
+        writeln('base64: option requires an argument -- \'w\'\nTry \'base64 --help\' for more information.'),
+        halt(0)
+    ).
+parse_arguments(['--ignore-garbage'|ArgList], I, W, Mode, Filename) :-  
+    I=1, 
+    parse_arguments(ArgList, I, W, Mode, Filename).
+parse_arguments(['-i'|ArgList], I, W, Mode, Filename) :-  
     I=1, 
     parse_arguments(ArgList, I, W, Mode, Filename).
 parse_arguments([Arg|_], _, _, _, _) :- 
@@ -75,7 +85,7 @@ version :-
 
 
 % Read file or stdin
-read_input(Filename, Codes) :- 
+read_input(Filename, Codes, _) :- 
     atom(Filename),
     ( exists_file(Filename) ->
         open(Filename, read, Stream),
@@ -87,9 +97,15 @@ read_input(Filename, Codes) :-
         writeln(': No such file or directory'),
         halt(0)
     ).
-read_input(_, Codes) :-
-    read(Input),
-    atom_codes(Input, Codes).
+read_input(_, Codes, 0) :-
+    current_input(Input),
+    read_line_to_codes(Input, InputCodes), 
+    close(Input),
+    append(InputCodes, [10], Codes).
+read_input(_, Codes, 1) :-
+    current_input(Input),
+    read_line_to_codes(Input, Codes), 
+    close(Input).
 
 
 % Decide each mode to call
@@ -97,7 +113,7 @@ call_encode_or_decode(_, W, 0, Codes) :- atom(W), encode(W, Codes).
 call_encode_or_decode(_, _, 0, Codes) :- encode('76', Codes).
 call_encode_or_decode(I, _, 1, Codes) :- number(I), decode(1, Codes).
 call_encode_or_decode(_, _, 1, Codes) :- decode(0, Codes).
-call_encode_or_decode(_, _, 1, _, _) :- writeln('base64: invalid input').
+call_encode_or_decode(_, _, 1, _) :- writeln('base64: invalid input').
 
 
 % Encode message
