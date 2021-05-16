@@ -12,6 +12,8 @@ section .bss
     buffer resb 4
     fd_in  resd 1
     res resb 4
+    wrap_value resb 4
+    wrap_string resb 4
 
 
 section .text
@@ -26,6 +28,7 @@ _start:
     dec edi
     mov esi, 0          ; 0=encode 1=decode
     mov edx, 0          ; init filename
+    ; mov dword [wrap_string], '56' ; init wrap 
 
     parse_arguments:
         cmp edi, 0
@@ -45,12 +48,28 @@ _start:
 
         is_decode:
         cmp byte [ebx+1], 'd'
-        jne parse_arguments
+        jne is_wrap
         cmp byte [ebx+2], 0
-        jne parse_arguments
+        jne is_wrap
         mov esi, 1
         jmp parse_arguments
 
+        is_wrap:
+        cmp byte [ebx+1], 'w'
+        jne parse_arguments
+        cmp byte [ebx+2], 0
+        jne parse_arguments
+        pop ebx
+        dec edi
+        mov ecx, 0
+        copy_wrap:
+            cmp byte [ebx+ecx], 0
+            je parse_arguments
+            mov byte al, [ebx+ecx]
+            mov byte [wrap_string+ecx], al
+            inc ecx
+            jmp copy_wrap
+        
         is_help_double:
         cmp byte [ebx+2], 'h'
         jne is_version_double
@@ -85,21 +104,37 @@ _start:
 
         is_decode_double:
         cmp byte [ebx+2], 'd'
-        jne parse_arguments
+        jne is_wrap_double
         cmp byte [ebx+3], 'e'
-        jne parse_arguments
+        jne is_wrap_double
         cmp byte [ebx+4], 'c'
-        jne parse_arguments
+        jne is_wrap_double
         cmp byte [ebx+5], 'o'
-        jne parse_arguments
+        jne is_wrap_double
         cmp byte [ebx+6], 'd'
-        jne parse_arguments
+        jne is_wrap_double
         cmp byte [ebx+7], 'e'
-        jne parse_arguments
+        jne is_wrap_double
         cmp byte [ebx+8], 0
-        jne parse_arguments
+        jne is_wrap_double
         mov esi, 1
         jmp parse_arguments
+
+        is_wrap_double:
+        cmp byte [ebx+2], 'w'
+        jne parse_arguments
+        cmp byte [ebx+3], 'r'
+        jne parse_arguments
+        cmp byte [ebx+4], 'a'
+        jne parse_arguments
+        cmp byte [ebx+5], 'p'
+        jne parse_arguments
+        cmp byte [ebx+6], 0
+        jne parse_arguments
+        pop ebx
+        dec edi
+        mov ecx, 0
+        jmp copy_wrap
 
     
     read_input:
@@ -245,30 +280,55 @@ encode_loop:
     je print_encode
     mov byte [res+2], '='      ; padded two =
 
-    print_encode:
-    ; print
-    mov eax, 4          ; sys_write
-    mov ebx, 1          ; stdout
-    mov ecx, res
-    mov edx, 4          ; 4 chars at a time
-    int 80h      
+    print_encode:   
 
-    ; update character count
-    add edi, 4          
+    xor eax, eax
+    mov esi, 0
+    string_to_int:              ; get int wrap value
+        xor ecx, ecx
+        mov byte cl, [wrap_string+esi]
+        cmp byte cl, '0'
+        jb wrap_result
+        cmp byte cl, '9'
+        ja wrap_result 
+        sub ecx, '0'    
+        imul eax, 10
+        add eax, ecx 
+        inc esi
+        jmp string_to_int
 
-    ; check line chars 
-    mov eax, edi
-    mov bl, 76
-    div bl
-    cmp ah, 0           ; if line has 76 chars       
-    jne encode_loop 
+    wrap_result:
+    mov [wrap_value], eax
+    mov esi, 0
+    wrap_result_loop:
+        cmp esi, 4
+        je encode_loop
 
-    ; print linebreak
-    mov eax, 4          ; sys_write
-    mov ebx, 1          ; stdout
-    mov ecx, new_line   
-    mov edx, 1          
-    int 80h
+        xor ecx, ecx
+        mov eax, 4          ; sys_write
+        mov ebx, 1          ; stdout
+        mov ecx, res
+        add ecx, esi
+        mov edx, 1          ; 1 char at a time
+        int 80h      
+
+        inc edi
+        inc esi
+
+        mov byte bl, [wrap_value]
+        mov eax, edi
+        div bl
+        cmp ah, 0           ; if line has 76 chars       
+        jne wrap_result_loop 
+
+        ; print linebreak
+        mov eax, 4          ; sys_write
+        mov ebx, 1          ; stdout
+        mov ecx, new_line   
+        mov edx, 1          
+        int 80h
+
+        jmp wrap_result_loop
 
     jmp encode_loop
 
