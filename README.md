@@ -8,11 +8,12 @@ Run the program with
 ```
 ./main.pl [OPTION]... [FILE]
 ```
+Just omit the filename to read from stdin.
 
 Options:
 - None to encode
 - -d or --decode to decode
-- -w N or --wrap N to break the output in N lines
+- -w N or --wrap N to break the output in N lines (only for encoding)
 - -i or --ignore-garbage to ignore chars outside Base64 index table
 - --version to show the original version message from Base64
 - --help to show the original help message from Base64
@@ -31,9 +32,11 @@ Run the program with
 ```
 ./main [OPTION]... [FILE]
 ```
+Just omit the filename to read from stdin.
 
 Options:
 - None to encode
 - -d or --decode to decode
+- -w N or --wrap N to break the output in N lines (only for encoding)
 - --version to show the original version message from Base64
 - --help to show the original help message from Base64
